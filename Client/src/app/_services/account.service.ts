@@ -7,7 +7,9 @@ import { User } from '../_models/user';
   providedIn: 'root'
 })
 export class AccountService {
+
 baseUrl='http://localhost:5016/api/';
+
 private currentUserSource=new BehaviorSubject<User|null>(null);
 currentUser$=this.currentUserSource.asObservable();
 
@@ -40,15 +42,12 @@ currentUser$=this.currentUserSource.asObservable();
   Register(model:any)
   {
     return this.http.post<User>(this.baseUrl+'Account/Register',model).pipe(
-      map((user)=>{
-        
+      map((user)=>{  
       if(user)
       {
         localStorage.setItem('user',JSON.stringify(user));
         this.currentUserSource.next(user);
       }
-    
-
       })
     )
   }
