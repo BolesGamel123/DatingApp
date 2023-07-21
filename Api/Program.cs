@@ -1,5 +1,7 @@
+using Api.Data;
 using Api.Extensions;
 using Api.Middleware;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,5 +25,20 @@ app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+using var scope = app.Services.CreateScope();
+var Services = scope.ServiceProvider;
+var context= Services.GetRequiredService<DataContext>();
+var logger=Services.GetRequiredService<ILogger<Program>>();
+try
+{
+   await context.Database.MigrateAsync();
+   await Seed.SeedUser(context);
+}
+catch (Exception ex)
+{
+
+    logger.LogError(ex, "Error Occured while Migrating Process");
+}
 
 app.Run();
