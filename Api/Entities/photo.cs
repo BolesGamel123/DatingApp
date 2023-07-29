@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Api.Entities
 {
      [Table("Photos")]
-    public class photo
+     public class photo
     {
         public int Id { get; set; }
 
