@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Api.Data;
 using Api.Dtos;
 using Api.Entities;
+using Api.Extensions;
 using Api.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -18,10 +19,14 @@ namespace Api.Controllers
        
         private readonly IUserRepository _userRepo;
          private readonly IMapper _mapper;
-        public UsersController(IUserRepository userRepo , IMapper mapper)
+
+          private readonly IPhotoService _photoService;
+
+        public UsersController(IUserRepository userRepo , IMapper mapper,  IPhotoService photoService)
         {
             _userRepo = userRepo; 
             _mapper=mapper;  
+            _photoService=photoService;
         }
       
          [HttpGet]
@@ -45,18 +50,99 @@ namespace Api.Controllers
          [HttpPut]
         public async Task<ActionResult> UpdateUser(MemberUpdateDto memberUpdateDto)
         {
-            var username= User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+         
 
-            var user=await _userRepo.GetUserByUsernameAsync(username);
+            var user = await _userRepo.GetUserByUsernameAsync(User.GetUsername());
             
             if(user==null) return NotFound();
 
-            _mapper.Map(memberUpdateDto, user);
+          
 
              if(await _userRepo.SaveAllAsync()) return NoContent();
 
              return BadRequest("Failed to update user");
         }
+
+
+    [HttpPost("AddPhoto")]
+   public async Task<ActionResult<photoDto>> AddPhoto(IFormFile file)
+    {
+       
+      var user = await _userRepo.GetUserByUsernameAsync(User.GetUsername());
+      if(user==null) return NotFound();
+  
+       var result= await _photoService.AddPhotoAsync(file);
+
+       if (result.Error != null) return BadRequest(result.Error.Message);
+
+          var photo = new photo
+        {
+            Url = result.SecureUrl.AbsoluteUri,
+            PublicId = result.PublicId
+        };
+
+
+         if (user.Photos.Count == 0) photo.IsMain = true;
+
+        user.Photos.Add(photo);
+
+        if( await _userRepo.SaveAllAsync()) 
+        {
+           return CreatedAtAction(nameof(GetUser),
+           new{username=user.UserName},
+           _mapper.Map<photoDto>(photo));
+        }  
+
+        return BadRequest("Problem adding photo");
+    }
+
+
+
+   [HttpPut("SetMainPhoto/{photoId}")]
+   public async Task<ActionResult> SetMainPhoto(int photoId)
+   {
+      var user = await _userRepo.GetUserByUsernameAsync(User.GetUsername());
+      if(user==null) return NotFound();
+
+      var photo= user.Photos.FirstOrDefault(x=>x.Id==photoId);
+
+      if(photo==null) return NotFound();
+
+     if (photo.IsMain) return BadRequest("This is already your main photo");
+
+     var currentMain=user.Photos.FirstOrDefault(x => x.IsMain);
+
+     if (currentMain != null) currentMain.IsMain = false;
+
+     photo.IsMain = true;
+     if( await _userRepo.SaveAllAsync()) return NoContent();
+     
+      return BadRequest("Problem setting main photo");
+
+   }
+
+ [HttpDelete("DeletePhoto/{photoId}")]
+ public async Task<ActionResult> DeletePhoto(int photoId)
+ {
+       var user = await _userRepo.GetUserByUsernameAsync(User.GetUsername());
+
+      if(user==null) return NotFound();
+
+      var photo= user.Photos.FirstOrDefault(x=>x.Id==photoId);
+
+      if(photo==null) return NotFound();
+      if (photo.IsMain) return BadRequest("You cannot delete your main photo");
+
+      if (photo.PublicId != null)
+      {
+        var result = await _photoService.DeletePhotoAsync(photo.PublicId);
+        if (result.Error != null) return BadRequest(result.Error.Message);
+      }
+
+        user.Photos.Remove(photo);
+         if( await _userRepo.SaveAllAsync()) return Ok();
+           return BadRequest("Problem deleting photo");
+ }
         
     }
 }

@@ -14,7 +14,7 @@ namespace Api.Data
             
             var userData = File.ReadAllText("Data/UserSeedData.json");
 
-             var options = new JsonSerializerOptions{PropertyNameCaseInsensitive = true};
+             var options = new JsonSerializerOptions{PropertyNameCaseInsensitive=true};
            
             var users = JsonSerializer.Deserialize<List<AppUser>>(userData);
 
