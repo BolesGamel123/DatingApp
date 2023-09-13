@@ -4,6 +4,7 @@ using Api.Data;
 using Api.Dtos;
 using Api.Entities;
 using Api.Extensions;
+using Api.Helpers;
 using Api.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -30,10 +31,24 @@ namespace Api.Controllers
         }
       
          [HttpGet]
-         public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers()
+         public async Task<ActionResult<PagedList<MemberDto>>> GetUsers([FromQuery] UserParams userParams)
          {
-         
-              return Ok(await _userRepo.GetMembersAsync());
+               var CurrentUser= await _userRepo.GetMemberByUsernameAsync(User.GetUsername());
+
+               userParams.CurrentUsername=CurrentUser.UserName;
+              
+              if(string.IsNullOrEmpty(userParams.Gender))
+              {
+                userParams.Gender=CurrentUser.Gender=="male"?"female":"male";
+              }
+
+              var users= await _userRepo.GetMembersAsync(userParams);
+
+              Response.AddPaginationHeader
+              (new PaginationHeader(users.CurrentPage,users.PageSize,users.TotalCount,users.TotalPages));
+
+               return Ok(users);
+
            
          }
 
@@ -56,8 +71,9 @@ namespace Api.Controllers
             
             if(user==null) return NotFound();
 
-          
-
+               _mapper.Map(memberUpdateDto,user);
+            
+            
              if(await _userRepo.SaveAllAsync()) return NoContent();
 
              return BadRequest("Failed to update user");
