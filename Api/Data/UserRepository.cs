@@ -40,13 +40,13 @@ namespace Api.Data
 
             query = userParams.OrderBy switch
               {
-               "created" => query.OrderByDescending(u => u.Created),
+                        "created" => query.OrderByDescending(u => u.Created),
                          _=> query.OrderByDescending(u => u.LastActive)
                  };
             
           return await PagedList<MemberDto>.CreateAsync(
             query.ProjectTo<MemberDto>(_mapper.ConfigurationProvider).AsNoTracking(),
-           userParams.pageNumber, userParams.PageSize);
+           userParams.PageNumber, userParams.PageSize);
         }
 
         public async Task<AppUser> GetUserByIdAsync(int id)
