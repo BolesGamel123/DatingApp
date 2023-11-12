@@ -88,6 +88,7 @@ export class PhotoEditorComponent implements OnInit {
     })
   }
 
+  
   deletePhoto(photoId: number) {
     this.memberService.deletePhoto(photoId).subscribe({
       next: _ => {

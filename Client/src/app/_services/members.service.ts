@@ -32,20 +32,6 @@ export class MembersService {
 
   }
 
-/////this method services to cach the results
-  // getMembers()
-  // {
-  //   if (this.members.length>0) return of(this.members)
-  //   return this.http.get<Member[]>(this.baseUrl+'Users').pipe(
-  //     map(
-  //       members=>{
-  //         this.members=members
-  //         return this.members
-  //       }
-  //       )
-  //   ) 
-  // }
-
 
 
   getUserParams()

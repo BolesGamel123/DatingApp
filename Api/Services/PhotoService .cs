@@ -8,7 +8,7 @@ namespace Api.Services
 {
     public class PhotoService : IPhotoService
     {
-          private readonly Cloudinary _cloudinary;
+        private readonly Cloudinary _cloudinary;
         public PhotoService (IOptions<CloudinarySettings> config)
         {
              var acc=new Account(
@@ -23,9 +23,11 @@ namespace Api.Services
         public async Task<ImageUploadResult> AddPhotoAsync(IFormFile file)
         {
             var uploadResult=new ImageUploadResult();
+
             if(file.Length>0)
             {
                 using var stream=file.OpenReadStream();
+                
                  var uploadParams = new ImageUploadParams
                   {
                    File = new FileDescription(file.FileName, stream),
@@ -39,11 +41,13 @@ namespace Api.Services
         return uploadResult;
         }
 
+
         public async Task<DeletionResult> DeletePhotoAsync(string publicId)
         {
              var deleteParams=new DeletionParams(publicId);
 
              return await _cloudinary.DestroyAsync(deleteParams);
         }
+
     }
 }

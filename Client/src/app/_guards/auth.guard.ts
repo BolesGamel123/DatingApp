@@ -8,6 +8,7 @@ import { ToastrService } from 'ngx-toastr';
   providedIn: 'root'
 })
 export class AuthGuard implements CanActivate {
+  
   constructor(private accountService:AccountService , private toastr:ToastrService) {
   }
  

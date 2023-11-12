@@ -30,6 +30,7 @@ namespace Api.Controllers
             _photoService=photoService;
         }
       
+      
          [HttpGet]
          public async Task<ActionResult<PagedList<MemberDto>>> GetUsers([FromQuery] UserParams userParams)
          {
@@ -53,7 +54,7 @@ namespace Api.Controllers
          }
 
     
-
+      
          [HttpGet("{username}")]
         public async Task<ActionResult<MemberDto>> GetUser(string username)
         {

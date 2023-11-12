@@ -42,7 +42,7 @@ namespace Api.Data
               {
                         "created" => query.OrderByDescending(u => u.Created),
                          _=> query.OrderByDescending(u => u.LastActive)
-                 };
+              };
             
           return await PagedList<MemberDto>.CreateAsync(
             query.ProjectTo<MemberDto>(_mapper.ConfigurationProvider).AsNoTracking(),
