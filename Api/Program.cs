@@ -2,6 +2,7 @@ using Api.Data;
 using Api.Entities;
 using Api.Extensions;
 using Api.Middleware;
+using Api.SignalR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,8 @@ app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<PresenceHub>("hubs/presence");
+app.MapHub<MessageHub>("hubs/message");
 
 using var scope = app.Services.CreateScope();
 var Services = scope.ServiceProvider;
@@ -38,6 +41,7 @@ var logger=Services.GetRequiredService<ILogger<Program>>();
 try
 {
    await context.Database.MigrateAsync();
+   await context.Database.ExecuteSqlRawAsync("DELETE FROM  [Connections]");
    await Seed.SeedUser(userManager,roleManager);
 }
 catch (Exception ex)

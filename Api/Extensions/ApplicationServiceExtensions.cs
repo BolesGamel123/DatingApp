@@ -4,6 +4,7 @@ using Api.Data;
 using Api.Helpers;
 using Api.Interfaces;
 using Api.Services;
+using Api.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Api.Extensions
@@ -25,9 +26,8 @@ namespace Api.Extensions
             {
             Policy.AllowAnyHeader()
                     .AllowAnyMethod()
-                    .WithOrigins("http://localhost:4200")
-
-                    ;
+                    .AllowCredentials()
+                    .WithOrigins("http://localhost:4200");
             });
             });
 
@@ -39,6 +39,9 @@ namespace Api.Extensions
             services.AddScoped<LogUserActivity>();
             services.AddScoped<ILikesRepository,LikesRepository>();
             services.AddScoped<IMessageRepository,MessageRepository>();
+            services.AddSignalR();
+            services.AddSingleton<PresenceTracker>();
+
               return services;
         }
     }
