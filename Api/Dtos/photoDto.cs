@@ -8,6 +8,6 @@ namespace Api.Dtos
 
         public bool IsMain { get; set; }
         
-       
+       public bool IsApproved { get; set; }
     }
 }

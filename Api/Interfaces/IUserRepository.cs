@@ -23,6 +23,8 @@ namespace Api.Interfaces
 
        Task<string> GetUserGender(string username);
 
-        
+       Task<MemberDto> GetMemberAsync(string username, bool isCurrentUser);
+
+        Task<AppUser> GetUserByPhotoId(int photoId);
     }
 }

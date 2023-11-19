@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Api.Data
 {
     public class DataContext : IdentityDbContext<AppUser,AppRole,int,
@@ -15,11 +16,12 @@ namespace Api.Data
         {
         }
 
-        
+       
         public DbSet<UserLike> Likes { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Group> Groups { get; set; }
        public DbSet<Connection> Connections { get; set; } 
+        public DbSet<photo> Photos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -60,11 +62,15 @@ namespace Api.Data
             .WithMany(l => l.MessagesSent)
             .OnDelete(DeleteBehavior.Restrict);
 
-
              builder.Entity<Message>()
             .HasOne(s => s.Recipient)
             .WithMany(l => l.MessagesReceived)
             .OnDelete(DeleteBehavior.Restrict);
+
+
+        builder.Entity<photo>().HasQueryFilter(p => p.IsApproved);
+
+       
         }
     }
 }

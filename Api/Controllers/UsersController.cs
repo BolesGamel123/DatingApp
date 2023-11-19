@@ -51,15 +51,6 @@ namespace Api.Controllers
            
          }
 
-    
-      
-         [HttpGet("{username}")]
-        public async Task<ActionResult<MemberDto>> GetUser(string username)
-        {
-              return await _uow.UserRepository.GetMemberByUsernameAsync(username);
-
-        }
-
 
          [HttpPut]
         public async Task<ActionResult> UpdateUser(MemberUpdateDto memberUpdateDto)
@@ -80,10 +71,11 @@ namespace Api.Controllers
 
 
     [HttpPost("AddPhoto")]
-   public async Task<ActionResult<photoDto>> AddPhoto(IFormFile file)
+     public async Task<ActionResult<photoDto>> AddPhoto(IFormFile file)
     {
        
       var user = await _uow.UserRepository.GetUserByUsernameAsync(User.GetUsername());
+
       if(user==null) return NotFound();
   
        var result= await _photoService.AddPhotoAsync(file);
@@ -95,9 +87,6 @@ namespace Api.Controllers
             Url = result.SecureUrl.AbsoluteUri,
             PublicId = result.PublicId
         };
-
-
-         if (user.Photos.Count == 0) photo.IsMain = true;
 
         user.Photos.Add(photo);
 
@@ -143,9 +132,10 @@ namespace Api.Controllers
 
       if(user==null) return NotFound();
 
-      var photo= user.Photos.FirstOrDefault(x=>x.Id==photoId);
+        var photo = await _uow.PhotoRepository.GetPhotoById(photoId);
 
-      if(photo==null) return NotFound();
+       if(photo==null) return NotFound();
+
       if (photo.IsMain) return BadRequest("You cannot delete your main photo");
 
       if (photo.PublicId != null)
@@ -157,7 +147,17 @@ namespace Api.Controllers
         user.Photos.Remove(photo);
          if( await _uow.Complete()) return Ok();
            return BadRequest("Problem deleting photo");
- }
+    }
         
+
+    [HttpGet("{username}")]
+    public async Task<ActionResult<MemberDto>> GetUser(string username)
+    {
+               var currentUsername = User.GetUsername();
+               return await _uow.UserRepository.GetMemberAsync(username,
+             isCurrentUser: currentUsername == username
+                );
+    }
+
     }
 }
