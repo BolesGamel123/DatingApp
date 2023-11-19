@@ -8,37 +8,38 @@ using Microsoft.AspNetCore.SignalR;
 namespace Api.SignalR
 {
     public class MessageHub:Hub
+    {  
+     
+     private readonly IUnitOfWork _uow;
+    private readonly IMapper _mapper;
+    private readonly IHubContext<PresenceHub> _presenceHub;
+
+    public MessageHub(IUnitOfWork uow,IMapper mapper, IHubContext<PresenceHub> presenceHub)
     {
-        private readonly IMessageRepository _messageRepo;
-         private readonly IUserRepository _userRepo;
-          private readonly IMapper _mapper;
-           private readonly IHubContext<PresenceHub> _presenceHub;
-        public MessageHub(IMessageRepository messageRepo,
-         IUserRepository userRepo, IMapper mapper, IHubContext<PresenceHub> presenceHub)
-        {
-          _userRepo = userRepo;
-            _messageRepo = messageRepo;
-               _mapper=mapper;  
-                _presenceHub = presenceHub;
-          
-        }
+        _uow = uow;
+        _mapper = mapper;
+        _presenceHub = presenceHub;
+    }
 
 
-       public override async Task OnConnectedAsync()
-       {
-           var httpContext = Context.GetHttpContext();
-            var otherUser = httpContext.Request.Query["user"];
-             var groupName = GetGroupName(Context.User.GetUsername(), otherUser);
-              await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-          var group= await AddToGroup(groupName);
+    public override async Task OnConnectedAsync()
+    {
+        var httpContext = Context.GetHttpContext();
+        var otherUser = httpContext.Request.Query["user"];
+        var groupName = GetGroupName(Context.User.GetUsername(), otherUser);
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        var group = await AddToGroup(groupName);
 
-          await Clients.Group(groupName).SendAsync("UpdatedGroup", group);
+        await Clients.Group(groupName).SendAsync("UpdatedGroup", group);
 
-               var messages = await _messageRepo
-                             .GetMessageThread(Context.User.GetUsername(), otherUser);
+        var messages = await _uow.MessageRepository
+            .GetMessageThread(Context.User.GetUsername(), otherUser);
 
-              await Clients.Caller.SendAsync("ReceiveMessageThread", messages);               
-       }
+        if (_uow.HasChanges()) await _uow.Complete();
+
+        await Clients.Caller.SendAsync("ReceiveMessageThread", messages);
+    }
+
 
 
 
@@ -59,9 +60,9 @@ namespace Api.SignalR
             }
 
 
-            var sender= await _userRepo.GetUserByUsernameAsync(username);
+            var sender= await _uow.UserRepository.GetUserByUsernameAsync(username);
 
-            var recipient=await _userRepo.GetUserByUsernameAsync(createMessageDto.RecipientUsername);
+            var recipient=await _uow.UserRepository.GetUserByUsernameAsync(createMessageDto.RecipientUsername);
 
             if(recipient==null)
             {
@@ -80,7 +81,7 @@ namespace Api.SignalR
             };
 
            var groupName = GetGroupName(sender.UserName, recipient.UserName);
-            var group = await _messageRepo.GetMessageGroup(groupName);
+            var group = await _uow.MessageRepository.GetMessageGroup(groupName);
              if (group.Connections.Any(x => x.Username == recipient.UserName))
              {
                message.DateRead = DateTime.UtcNow;
@@ -95,9 +96,9 @@ namespace Api.SignalR
              }
                   }
 
-            _messageRepo.AddMessage(message);
+            _uow.MessageRepository.AddMessage(message);
 
-            if(await _messageRepo.SaveAllAsync())
+            if(await _uow.Complete())
             {
                  await Clients.Group(groupName).SendAsync("NewMessage", _mapper.Map<MessageDto>(message));
 
@@ -119,18 +120,18 @@ namespace Api.SignalR
 
      private async Task<Group> AddToGroup(string groupName)
     {
-        var group = await _messageRepo.GetMessageGroup(groupName);
+        var group = await _uow.MessageRepository.GetMessageGroup(groupName);
         var connection = new Connection(Context.ConnectionId, Context.User.GetUsername());
 
         if (group == null)
         {
             group = new Group(groupName);
-           _messageRepo.AddGroup(group);
+           _uow.MessageRepository.AddGroup(group);
         }
 
         group.Connections.Add(connection);
 
-        if(await _messageRepo.SaveAllAsync()) return group;
+        if(await _uow.Complete()) return group;
 
          throw new HubException("Failed to add to group");
     }
@@ -139,13 +140,13 @@ namespace Api.SignalR
 
     private async Task<Group> RemoveFromMessageGroup()
     {
-       var group = await _messageRepo.GetGroupForConnection(Context.ConnectionId);
+       var group = await _uow.MessageRepository.GetGroupForConnection(Context.ConnectionId);
         var connection = group.Connections
             .FirstOrDefault(x => x.ConnectionId == Context.ConnectionId);
 
-       _messageRepo.RemoveConnection(connection);
+       _uow.MessageRepository.RemoveConnection(connection);
 
-      if(await _messageRepo.SaveAllAsync()) return group;
+      if(await _uow.Complete()) return group;
 
 
        throw new HubException("Failed to remove from group");
